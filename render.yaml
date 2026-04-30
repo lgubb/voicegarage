@@ -4,7 +4,7 @@ services:
     runtime: static
     rootDir: garage-voice-agent/frontend
     buildCommand: npm install && npm run build
-    staticPublishPath: garage-voice-agent/frontend/out
+    staticPublishPath: out
     envVars:
       - key: NEXT_PUBLIC_API_BASE_URL
         value: https://voicegarage-api.onrender.com
