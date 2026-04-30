@@ -222,6 +222,59 @@ Scenarios principaux:
 - `carrosserie.md`;
 - `panne_urgente.md`.
 
+## Deploiement Render
+
+Le repo contient un `render.yaml` a la racine pour creer deux services Render:
+
+- `voicegarage-api`: Web Service FastAPI public.
+- `voicegarage-agent`: Background Worker LiveKit Agent.
+
+Depuis Render, creer un Blueprint depuis le repo GitHub et utiliser la branche de production, generalement `main`.
+
+Les deux services utilisent:
+
+```bash
+uv sync --frozen --no-dev
+```
+
+L'API demarre avec:
+
+```bash
+uv run --no-dev uvicorn api.main:app --host 0.0.0.0 --port $PORT
+```
+
+Le worker demarre avec:
+
+```bash
+uv run --no-dev python src/agent.py start
+```
+
+Variables a renseigner dans Render:
+
+```env
+LIVEKIT_URL=
+LIVEKIT_API_KEY=
+LIVEKIT_API_SECRET=
+DEEPGRAM_API_KEY=
+OPENROUTER_API_KEY=
+ELEVENLABS_API_KEY=
+VOIX_FEMME_ID=
+VOIX_HOMME_ID=
+CORS_ORIGINS=https://ton-site-vercel.vercel.app,https://ton-domaine.fr
+```
+
+Le service API monte un disque persistant sur `/var/data` et ecrit les fiches dans:
+
+```env
+LOCAL_CALL_STORE_PATH=/var/data/calls.json
+```
+
+Une fois l'API Render creee, mettre son URL publique dans Vercel cote frontend:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=https://voicegarage-api.onrender.com
+```
+
 ## Limites actuelles
 
 - Calendrier mocke.

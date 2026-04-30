@@ -1,0 +1,75 @@
+services:
+  - type: web
+    name: voicegarage-api
+    runtime: python
+    region: frankfurt
+    plan: starter
+    rootDir: garage-voice-agent
+    buildCommand: uv sync --frozen --no-dev
+    startCommand: uv run --no-dev uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    disk:
+      name: voicegarage-api-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: LOCAL_CALL_STORE_PATH
+        value: /var/data/calls.json
+      - key: DEMO_MODE
+        value: true
+      - key: MOCK_CALENDAR
+        value: true
+      - key: MOCK_SMS
+        value: true
+      - key: MOCK_EMAIL
+        value: true
+      - key: MOCK_HANDOFF
+        value: true
+      - key: CORS_ORIGINS
+        sync: false
+      - key: LIVEKIT_URL
+        sync: false
+      - key: LIVEKIT_API_KEY
+        sync: false
+      - key: LIVEKIT_API_SECRET
+        sync: false
+
+  - type: worker
+    name: voicegarage-agent
+    runtime: python
+    region: frankfurt
+    plan: starter
+    rootDir: garage-voice-agent
+    buildCommand: uv sync --frozen --no-dev
+    startCommand: uv run --no-dev python src/agent.py start
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: LIVEKIT_URL
+        sync: false
+      - key: LIVEKIT_API_KEY
+        sync: false
+      - key: LIVEKIT_API_SECRET
+        sync: false
+      - key: DEEPGRAM_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: VOIX_FEMME_ID
+        sync: false
+      - key: VOIX_HOMME_ID
+        sync: false
+      - key: DEMO_MODE
+        value: true
+      - key: MOCK_CALENDAR
+        value: true
+      - key: MOCK_SMS
+        value: true
+      - key: MOCK_EMAIL
+        value: true
+      - key: MOCK_HANDOFF
+        value: true
