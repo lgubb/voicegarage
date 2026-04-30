@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CallSummary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "caller_name",
+    "phone",
+    "email",
+    "vehicle_make",
+    "vehicle_model",
+    "license_plate",
+    "intent",
+    "urgency",
+    "requested_action",
+    "appointment_status",
+    "appointment_datetime",
+    "summary_for_garage",
+    "missing_info",
+    "risk_flags",
+    "tool_calls",
+    "next_action"
+  ],
+  "properties": {
+    "caller_name": { "type": ["string", "null"] },
+    "phone": { "type": ["string", "null"] },
+    "email": { "type": ["string", "null"] },
+    "vehicle_make": { "type": ["string", "null"] },
+    "vehicle_model": { "type": ["string", "null"] },
+    "license_plate": { "type": ["string", "null"] },
+    "intent": {
+      "type": "string",
+      "enum": [
+        "revision_entretien",
+        "pneus",
+        "carrosserie",
+        "panne",
+        "diagnostic",
+        "devis",
+        "suivi_vehicule",
+        "annulation_report_rdv",
+        "urgence",
+        "autre"
+      ]
+    },
+    "urgency": { "type": "string", "enum": ["low", "medium", "high"] },
+    "requested_action": {
+      "type": "string",
+      "enum": ["appointment", "quote", "callback", "transfer", "information", "unknown"]
+    },
+    "appointment_status": {
+      "type": "string",
+      "enum": ["confirmed", "pending", "not_requested"]
+    },
+    "appointment_datetime": { "type": ["string", "null"] },
+    "summary_for_garage": { "type": "string", "minLength": 1 },
+    "missing_info": { "type": "array", "items": { "type": "string" } },
+    "risk_flags": { "type": "array", "items": { "type": "string" } },
+    "tool_calls": { "type": "array", "items": { "type": "string" } },
+    "next_action": { "type": "string", "minLength": 1 }
+  }
+}

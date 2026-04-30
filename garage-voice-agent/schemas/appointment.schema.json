@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Appointment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "appointment_id",
+    "caller_name",
+    "phone",
+    "vehicle",
+    "service_type",
+    "datetime",
+    "status",
+    "notes"
+  ],
+  "properties": {
+    "appointment_id": { "type": "string" },
+    "caller_name": { "type": ["string", "null"] },
+    "phone": { "type": ["string", "null"] },
+    "vehicle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["make", "model", "license_plate"],
+      "properties": {
+        "make": { "type": ["string", "null"] },
+        "model": { "type": ["string", "null"] },
+        "license_plate": { "type": ["string", "null"] }
+      }
+    },
+    "service_type": { "type": "string" },
+    "datetime": { "type": "string" },
+    "status": { "type": "string", "enum": ["confirmed", "pending", "not_requested"] },
+    "notes": { "type": ["string", "null"] }
+  }
+}
