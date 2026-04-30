@@ -1,5 +1,17 @@
 services:
   - type: web
+    name: voicegarage-web
+    runtime: static
+    rootDir: garage-voice-agent/frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: garage-voice-agent/frontend/out
+    envVars:
+      - key: NEXT_PUBLIC_API_BASE_URL
+        value: https://voicegarage-api.onrender.com
+      - key: NEXT_PUBLIC_APP_NAME
+        value: Garage Voice Agent
+
+  - type: web
     name: voicegarage-api
     runtime: python
     region: frankfurt
