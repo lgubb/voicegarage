@@ -28,6 +28,7 @@ except ImportError:  # pragma: no cover - optional plugin in self-hosted setups
     ai_coustics = None
 
 from config import PROJECT_ROOT, Settings, get_settings
+from identity import normalize_customer_identity_payload
 from logging_config import configure_logging
 from prompts import load_system_prompt
 from tools.calendar_tools import check_availability as check_availability_impl
@@ -191,6 +192,7 @@ class LiveCallSheetState:
         self.assistant_messages: list[str] = []
         self.record_payload: dict[str, Any] | None = None
         self.appointment_payload: dict[str, Any] | None = None
+        self.identity_payload: dict[str, Any] | None = None
         self._lock = asyncio.Lock()
 
     def add_user_transcript(self, transcript: str) -> None:
@@ -221,6 +223,15 @@ class LiveCallSheetState:
     def best_phone(self, fallback: str | None) -> str | None:
         transcript_phone = extract_french_phone_number("\n".join(self.user_transcripts))
         return transcript_phone or normalize_french_phone(fallback) or clean_text(fallback)
+
+    def set_identity(self, payload: dict[str, Any]) -> None:
+        if payload.get("caller_name") and not payload.get("needs_reask"):
+            self.identity_payload = payload
+
+    def best_caller_name(self, fallback: str | None) -> str | None:
+        if self.identity_payload and self.identity_payload.get("caller_name"):
+            return clean_text(self.identity_payload.get("caller_name"))
+        return clean_text(fallback)
 
     def looks_like_recap(self, message: str) -> bool:
         normalized = message.lower()
@@ -333,7 +344,7 @@ class LiveCallSheetState:
         summary = clean_text(extracted.get("summary")) or "Informations collectées pendant l'appel."
         phone = self.best_phone(clean_text(extracted.get("phone")))
         record = create_call_record_impl(
-            caller_name=clean_text(extracted.get("caller_name")),
+            caller_name=self.best_caller_name(clean_text(extracted.get("caller_name"))),
             phone=phone,
             email=clean_text(extracted.get("email")),
             vehicle_make=clean_text(extracted.get("vehicle_make")),
@@ -357,7 +368,7 @@ class LiveCallSheetState:
             return self.appointment_payload
         phone = self.best_phone(clean_text(extracted.get("phone")))
         return {
-            "caller_name": clean_text(extracted.get("caller_name")),
+            "caller_name": self.best_caller_name(clean_text(extracted.get("caller_name"))),
             "phone": phone,
             "vehicle": {
                 "make": clean_text(extracted.get("vehicle_make")),
@@ -394,6 +405,30 @@ class GarageAgent(Agent):
         if self.room is None:
             return
         await publish_call_sheet_payload(self.room, source, payload)
+
+    @function_tool()
+    async def normalize_customer_identity(
+        self,
+        context: RunContext,
+        first_name: str | None,
+        last_name_heard: str | None,
+        spelling_transcript: str,
+    ) -> dict[str, Any]:
+        """Normalise le nom client depuis l'epellation avant toute confirmation orale.
+
+        Args:
+            first_name: Prenom entendu, si disponible.
+            last_name_heard: Nom de famille entendu comme un mot, meme approximatif.
+            spelling_transcript: Segment exact ou le client epelle son nom.
+        """
+        payload = normalize_customer_identity_payload(
+            first_name=first_name,
+            last_name_heard=last_name_heard,
+            spelling_transcript=spelling_transcript,
+        )
+        if self.call_sheet_state is not None:
+            self.call_sheet_state.set_identity(payload)
+        return payload
 
     @function_tool()
     async def check_availability(
@@ -442,6 +477,7 @@ class GarageAgent(Agent):
         """
         if self.call_sheet_state is not None:
             phone = self.call_sheet_state.best_phone(phone)
+            caller_name = self.call_sheet_state.best_caller_name(caller_name)
         else:
             phone = normalize_french_phone(phone) or clean_text(phone)
         appointment = create_appointment_impl(
@@ -479,6 +515,7 @@ class GarageAgent(Agent):
         """Cree une fiche appel exploitable, meme avec des informations incompletes."""
         if self.call_sheet_state is not None:
             phone = self.call_sheet_state.best_phone(phone)
+            caller_name = self.call_sheet_state.best_caller_name(caller_name)
         else:
             phone = normalize_french_phone(phone) or clean_text(phone)
         record = create_call_record_impl(
@@ -596,16 +633,6 @@ def pronunciation_dictionary_locators(
     ]
 
 
-def elevenlabs_voice_settings(settings: Settings) -> elevenlabs.VoiceSettings:
-    return elevenlabs.VoiceSettings(
-        stability=settings.elevenlabs_stability,
-        similarity_boost=settings.elevenlabs_similarity_boost,
-        style=settings.elevenlabs_style,
-        speed=settings.elevenlabs_speed,
-        use_speaker_boost=settings.elevenlabs_use_speaker_boost,
-    )
-
-
 def session_metadata(ctx: JobContext) -> dict[str, Any]:
     if not ctx.job.metadata:
         return {}
@@ -626,7 +653,6 @@ def build_tts(settings: Settings, voice: str | None = None):
         kwargs["pronunciation_dictionary_locators"] = locators
     return elevenlabs.TTS(
         voice_id=selected_voice_id_for_session(settings, voice),
-        voice_settings=elevenlabs_voice_settings(settings),
         model=settings.elevenlabs_tts_model,
         language="fr",
         api_key=settings.elevenlabs_api_key,

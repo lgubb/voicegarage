@@ -39,6 +39,27 @@ def test_confirmed_appointment_still_triggers_recap() -> None:
     )
 
 
+def test_identity_payload_overrides_hallucinated_caller_name() -> None:
+    state = LiveCallSheetState(FakeRoom(), Settings())
+    state.set_identity(
+        {
+            "caller_name": "Louis Gubbiotti",
+            "needs_reask": False,
+        }
+    )
+
+    record = state.build_record_payload(
+        {
+            "caller_name": "Louis Bbitti",
+            "phone": "06 00 00 00 00",
+            "summary": "Demande de rendez-vous.",
+        },
+        "test",
+    )
+
+    assert record["caller"]["name"] == "Louis Gubbiotti"
+
+
 async def test_disconnect_refreshes_record_created_from_assistant_recap() -> None:
     room = FakeRoom()
     state = LiveCallSheetState(room, Settings())
