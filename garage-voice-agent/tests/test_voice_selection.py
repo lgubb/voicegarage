@@ -1,4 +1,10 @@
-from agent import build_turn_handling, initial_greeting, selected_voice_id_for_session
+from agent import (
+    build_turn_handling,
+    elevenlabs_voice_settings,
+    initial_greeting,
+    pronunciation_dictionary_locators,
+    selected_voice_id_for_session,
+)
 from config import Settings
 
 
@@ -56,6 +62,34 @@ def test_initial_greeting_presents_virtual_assistant() -> None:
     )
 
 
+def test_pronunciation_dictionary_locator_requires_id_and_version() -> None:
+    assert pronunciation_dictionary_locators(Settings()) is None
+
+    incomplete_settings = Settings(ELEVENLABS_PRONUNCIATION_DICTIONARY_ID="dict_id")
+    assert pronunciation_dictionary_locators(incomplete_settings) is None
+
+    settings = Settings(
+        ELEVENLABS_PRONUNCIATION_DICTIONARY_ID="dict_id",
+        ELEVENLABS_PRONUNCIATION_DICTIONARY_VERSION_ID="version_id",
+    )
+
+    locators = pronunciation_dictionary_locators(settings)
+
+    assert locators is not None
+    assert locators[0].pronunciation_dictionary_id == "dict_id"
+    assert locators[0].version_id == "version_id"
+
+
+def test_elevenlabs_voice_settings_use_natural_stable_defaults() -> None:
+    voice_settings = elevenlabs_voice_settings(Settings())
+
+    assert voice_settings.stability == 0.45
+    assert voice_settings.similarity_boost == 0.75
+    assert voice_settings.style == 0.0
+    assert voice_settings.use_speaker_boost is False
+    assert voice_settings.speed == 0.95
+
+
 def test_default_deepgram_turn_thresholds_are_latency_oriented() -> None:
     settings = Settings()
 
@@ -63,6 +97,11 @@ def test_default_deepgram_turn_thresholds_are_latency_oriented() -> None:
     assert settings.deepgram_eot_threshold == 0.7
     assert settings.deepgram_eot_timeout_ms == 3000
     assert settings.elevenlabs_tts_model == "eleven_multilingual_v2"
+    assert settings.elevenlabs_stability == 0.45
+    assert settings.elevenlabs_similarity_boost == 0.75
+    assert settings.elevenlabs_style == 0.0
+    assert settings.elevenlabs_use_speaker_boost is False
+    assert settings.elevenlabs_speed == 0.95
     assert settings.aec_warmup_duration == 0.8
     assert settings.discard_audio_if_uninterruptible is False
     assert settings.preemptive_generation_enabled is False

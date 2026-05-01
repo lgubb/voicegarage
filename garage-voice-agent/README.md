@@ -52,6 +52,13 @@ LLM_MODEL=gpt-4.1-mini
 ELEVENLABS_API_KEY=
 ELEVENLABS_TTS_MODEL=eleven_multilingual_v2
 ELEVENLABS_APPLY_TEXT_NORMALIZATION=on
+ELEVENLABS_STABILITY=0.45
+ELEVENLABS_SIMILARITY_BOOST=0.75
+ELEVENLABS_STYLE=0
+ELEVENLABS_USE_SPEAKER_BOOST=false
+ELEVENLABS_SPEED=0.95
+ELEVENLABS_PRONUNCIATION_DICTIONARY_ID=
+ELEVENLABS_PRONUNCIATION_DICTIONARY_VERSION_ID=
 VOIX_FEMME_ID=
 VOIX_HOMME_ID=
 ENDPOINTING_MIN_DELAY=0.3
@@ -159,6 +166,25 @@ Changer le modele TTS:
 ```env
 ELEVENLABS_TTS_MODEL=eleven_multilingual_v2
 ```
+
+Reglages voix ElevenLabs recommandes pour une voix stable et naturelle:
+
+```env
+ELEVENLABS_STABILITY=0.45
+ELEVENLABS_SIMILARITY_BOOST=0.75
+ELEVENLABS_STYLE=0
+ELEVENLABS_USE_SPEAKER_BOOST=false
+ELEVENLABS_SPEED=0.95
+```
+
+Ajouter un dictionnaire de prononciation ElevenLabs:
+
+```env
+ELEVENLABS_PRONUNCIATION_DICTIONARY_ID=...
+ELEVENLABS_PRONUNCIATION_DICTIONARY_VERSION_ID=...
+```
+
+Le texte envoye au TTS est aussi oralise avant synthese pour les cas frequents: numeros de telephone, plaques d'immatriculation, horaires et acronymes automobiles courants.
 
 ## Changer le modele LLM
 
