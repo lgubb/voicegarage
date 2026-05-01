@@ -1,5 +1,6 @@
 from agent import (
     build_turn_handling,
+    elevenlabs_voice_settings,
     initial_greeting,
     pronunciation_dictionary_locators,
     selected_voice_id_for_session,
@@ -79,6 +80,13 @@ def test_pronunciation_dictionary_locator_requires_id_and_version() -> None:
     assert locators[0].version_id == "version_id"
 
 
+def test_elevenlabs_voice_settings_use_lightly_expressive_stability() -> None:
+    voice_settings = elevenlabs_voice_settings(Settings())
+
+    assert voice_settings.stability == 0.4
+    assert voice_settings.similarity_boost == 0.75
+
+
 def test_default_deepgram_turn_thresholds_are_latency_oriented() -> None:
     settings = Settings()
 
@@ -86,6 +94,7 @@ def test_default_deepgram_turn_thresholds_are_latency_oriented() -> None:
     assert settings.deepgram_eot_threshold == 0.7
     assert settings.deepgram_eot_timeout_ms == 3000
     assert settings.elevenlabs_tts_model == "eleven_multilingual_v2"
+    assert settings.elevenlabs_stability == 0.4
     assert settings.aec_warmup_duration == 0.8
     assert settings.discard_audio_if_uninterruptible is False
     assert settings.preemptive_generation_enabled is False

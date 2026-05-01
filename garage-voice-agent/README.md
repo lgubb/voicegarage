@@ -52,6 +52,7 @@ LLM_MODEL=gpt-4.1-mini
 ELEVENLABS_API_KEY=
 ELEVENLABS_TTS_MODEL=eleven_multilingual_v2
 ELEVENLABS_APPLY_TEXT_NORMALIZATION=on
+ELEVENLABS_STABILITY=0.40
 ELEVENLABS_PRONUNCIATION_DICTIONARY_ID=
 ELEVENLABS_PRONUNCIATION_DICTIONARY_VERSION_ID=
 VOIX_FEMME_ID=
@@ -160,6 +161,12 @@ Changer le modele TTS:
 
 ```env
 ELEVENLABS_TTS_MODEL=eleven_multilingual_v2
+```
+
+Ajouter un peu de vie a la voix ElevenLabs:
+
+```env
+ELEVENLABS_STABILITY=0.40
 ```
 
 Ajouter un dictionnaire de prononciation ElevenLabs:
