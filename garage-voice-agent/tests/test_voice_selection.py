@@ -1,4 +1,4 @@
-from agent import build_turn_handling, selected_voice_id_for_session
+from agent import build_turn_handling, initial_greeting, selected_voice_id_for_session
 from config import Settings
 
 
@@ -40,6 +40,15 @@ def test_turn_handling_uses_vad_interruption_defaults() -> None:
             "max_retries": 2,
         },
     }
+
+
+def test_initial_greeting_presents_virtual_assistant() -> None:
+    settings = Settings(GARAGE_NAME="garage Martin")
+
+    assert (
+        initial_greeting(settings)
+        == "Bonjour, je suis l'assistant virtuel du garage Martin. Comment puis-je vous aider?"
+    )
 
 
 def test_default_deepgram_turn_thresholds_are_latency_oriented() -> None:

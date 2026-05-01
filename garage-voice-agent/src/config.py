@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     preemptive_max_speech_duration: float = Field(default=6.0, alias="PREEMPTIVE_MAX_SPEECH_DURATION")
     preemptive_max_retries: int = Field(default=2, alias="PREEMPTIVE_MAX_RETRIES")
 
-    garage_name: str = Field(default="Votre garage", alias="GARAGE_NAME")
+    garage_name: str = Field(default="garage Martin", alias="GARAGE_NAME")
     agent_name: str = Field(default="garage-voice-agent", alias="AGENT_NAME")
 
     demo_mode: bool = Field(default=True, alias="DEMO_MODE")
