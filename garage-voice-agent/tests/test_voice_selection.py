@@ -27,8 +27,8 @@ def test_turn_handling_uses_stable_interruption_defaults() -> None:
         "turn_detection": "stt",
         "endpointing": {
             "mode": "fixed",
-            "min_delay": 0.1,
-            "max_delay": 0.9,
+            "min_delay": 0.3,
+            "max_delay": 1.2,
         },
         "interruption": {
             "mode": "adaptive",
@@ -39,7 +39,7 @@ def test_turn_handling_uses_stable_interruption_defaults() -> None:
             "resume_false_interruption": True,
         },
         "preemptive_generation": {
-            "enabled": True,
+            "enabled": False,
             "preemptive_tts": True,
             "max_speech_duration": 6.0,
             "max_retries": 2,
@@ -56,6 +56,7 @@ def test_default_deepgram_turn_thresholds_are_latency_oriented() -> None:
     assert settings.elevenlabs_tts_model == "eleven_multilingual_v2"
     assert settings.aec_warmup_duration == 0.8
     assert settings.discard_audio_if_uninterruptible is False
+    assert settings.preemptive_generation_enabled is False
     assert settings.preemptive_tts is True
     assert settings.preemptive_max_speech_duration == 6.0
     assert settings.preemptive_max_retries == 2
