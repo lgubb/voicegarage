@@ -494,7 +494,7 @@ def build_turn_handling(settings: Settings) -> dict[str, Any]:
             "resume_false_interruption": True,
         },
         "preemptive_generation": {
-            "enabled": True,
+            "enabled": settings.preemptive_generation_enabled,
             "preemptive_tts": settings.preemptive_tts,
             "max_speech_duration": settings.preemptive_max_speech_duration,
             "max_retries": settings.preemptive_max_retries,
