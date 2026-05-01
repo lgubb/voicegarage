@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 
 const heroDescription =
-  "VoiceAuto accompagne les appels, comprend la demande du client, prend les rendez-vous et les ajoute au calendrier, tout en préparant les informations utiles pour que votre équipe garde le contrôle.";
+  "VoiceAuto prend les appels, comprend la demande du client, réserve les rendez-vous et les ajoute au calendrier, tout en préparant les informations utiles pour que votre équipe garde le contrôle.";
 
 export default function HomePage() {
   return (
@@ -13,7 +13,7 @@ export default function HomePage() {
           VoiceAuto
         </p>
         <h1 className="mx-auto max-w-4xl text-5xl font-semibold tracking-tight text-ink sm:text-6xl">
-          Un accueil téléphonique plus fluide pour votre garage ou carrosserie
+          Ne manquez plus d’appels clients dans votre garage ou carrosserie
         </h1>
         <p className="home-copy-animate mx-auto mt-6 max-w-2xl text-lg font-medium leading-8">
           {heroDescription}
