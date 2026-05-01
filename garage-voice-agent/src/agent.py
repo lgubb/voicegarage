@@ -149,29 +149,22 @@ class LiveCallSheetState:
             logger.info("fallback_call_sheet_published", extra={"reason": reason})
 
     async def extract_with_llm(self) -> dict[str, Any] | None:
-        if not self.settings.openrouter_api_key:
+        api_key = self.settings.llm_api_key
+        if not api_key:
             return None
 
         transcript = self.conversation_text()
         if not transcript:
             return None
 
-        headers: dict[str, str] = {}
-        if self.settings.openrouter_site_url:
-            headers["HTTP-Referer"] = self.settings.openrouter_site_url
-        if self.settings.openrouter_app_name:
-            headers["X-Title"] = self.settings.openrouter_app_name
-
         client = AsyncOpenAI(
-            api_key=self.settings.openrouter_api_key,
-            base_url=self.settings.openrouter_base_url,
-            default_headers=headers,
+            api_key=api_key,
             timeout=5.0,
         )
         try:
             completion = await asyncio.wait_for(
                 client.chat.completions.create(
-                    model=self.settings.openrouter_model,
+                    model=self.settings.openai_model_name,
                     temperature=0,
                     max_tokens=500,
                     response_format={"type": "json_object"},
@@ -442,14 +435,14 @@ def build_stt(settings: Settings):
 
 
 def build_llm(settings: Settings):
-    return openai.LLM.with_openrouter(
-        model=settings.openrouter_model,
-        api_key=settings.openrouter_api_key,
-        base_url=settings.openrouter_base_url,
-        site_url=settings.openrouter_site_url,
-        app_name=settings.openrouter_app_name,
-        temperature=settings.llm_temperature,
-    )
+    kwargs: dict[str, Any] = {
+        "model": settings.openai_model_name,
+        "api_key": settings.openai_api_key,
+        "temperature": settings.llm_temperature,
+    }
+    if settings.resolved_reasoning_effort:
+        kwargs["reasoning_effort"] = settings.resolved_reasoning_effort
+    return openai.LLM(**kwargs)
 
 
 def selected_voice_id_for_session(settings: Settings, voice: str | None = None) -> str:

@@ -28,12 +28,16 @@ def _print_env() -> bool:
         "LIVEKIT_API_KEY": agent_settings.livekit_api_key,
         "LIVEKIT_API_SECRET": agent_settings.livekit_api_secret,
         "DEEPGRAM_API_KEY": agent_settings.deepgram_api_key,
-        "OPENROUTER_API_KEY": agent_settings.openrouter_api_key,
+        "LLM_MODEL": agent_settings.resolved_llm_model,
+        "OPENAI_API_KEY": agent_settings.openai_api_key,
         "ELEVENLABS_API_KEY": agent_settings.elevenlabs_api_key,
         "API_LOCAL_STORE": str(api_settings.local_call_store_path),
     }
     for name, value in checks.items():
-        print(f"{name}: {_mask(value)}")
+        if name in {"LLM_MODEL", "API_LOCAL_STORE"}:
+            print(f"{name}: {value or 'missing'}")
+        else:
+            print(f"{name}: {_mask(value)}")
 
     missing = [
         name
@@ -42,11 +46,12 @@ def _print_env() -> bool:
             "LIVEKIT_API_KEY",
             "LIVEKIT_API_SECRET",
             "DEEPGRAM_API_KEY",
-            "OPENROUTER_API_KEY",
             "ELEVENLABS_API_KEY",
         ]
         if not checks[name]
     ]
+    if not checks["OPENAI_API_KEY"]:
+        missing.append("OPENAI_API_KEY")
     if missing:
         print(f"\nMissing required variables: {', '.join(missing)}")
         return False

@@ -28,13 +28,11 @@ class Settings(BaseSettings):
     deepgram_eot_threshold: float = Field(default=0.7, alias="DEEPGRAM_EOT_THRESHOLD")
     deepgram_eot_timeout_ms: int = Field(default=3000, alias="DEEPGRAM_EOT_TIMEOUT_MS")
 
-    openrouter_api_key: str | None = Field(default=None, alias="OPENROUTER_API_KEY")
-    openrouter_base_url: str = Field(default="https://openrouter.ai/api/v1", alias="OPENROUTER_BASE_URL")
-    openrouter_model: str = Field(default="google/gemini-3-flash-preview", alias="OPENROUTER_MODEL")
-    openrouter_site_url: str | None = Field(default=None, alias="OPENROUTER_SITE_URL")
-    openrouter_app_name: str = Field(default="Auto Voice Agent", alias="OPENROUTER_APP_NAME")
+    openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
+    llm_model: str = Field(default="gpt-4.1-mini", alias="LLM_MODEL")
     llm_temperature: float = Field(default=0.2, alias="LLM_TEMPERATURE")
     llm_max_tokens: int = Field(default=180, alias="LLM_MAX_TOKENS")
+    llm_reasoning_effort: str | None = Field(default=None, alias="LLM_REASONING_EFFORT")
 
     elevenlabs_api_key: str | None = Field(default=None, alias="ELEVENLABS_API_KEY")
     elevenlabs_tts_model: str = Field(default="eleven_multilingual_v2", alias="ELEVENLABS_TTS_MODEL")
@@ -76,6 +74,26 @@ class Settings(BaseSettings):
         if self.voix_femme_id:
             return self.voix_femme_id
         return "EXAVITQu4vr4xnSDxMaL"
+
+    @property
+    def resolved_llm_model(self) -> str:
+        return self.llm_model.strip().removeprefix("openai/")
+
+    @property
+    def openai_model_name(self) -> str:
+        return self.resolved_llm_model
+
+    @property
+    def llm_api_key(self) -> str | None:
+        return self.openai_api_key
+
+    @property
+    def resolved_reasoning_effort(self) -> str | None:
+        if self.llm_reasoning_effort:
+            return self.llm_reasoning_effort.strip().lower()
+        if self.openai_model_name.startswith("gpt-5.4"):
+            return "none"
+        return None
 
     @property
     def prompt_path(self) -> Path:

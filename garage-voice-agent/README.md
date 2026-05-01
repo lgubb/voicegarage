@@ -8,7 +8,7 @@ Le socle principal est LiveKit Agents. Vapi sert uniquement de benchmark produit
 
 - LiveKit Agents Python pour le runtime vocal temps reel.
 - Deepgram pour le STT, avec Flux par defaut et fallback Nova-3/multi prevu.
-- OpenRouter via le plugin OpenAI compatible LiveKit pour le LLM.
+- OpenAI direct via le plugin OpenAI compatible LiveKit pour le LLM.
 - ElevenLabs Flash v2.5 pour le TTS.
 - Pydantic pour les schemas structures.
 - FastAPI pour la couche API de demo.
@@ -47,7 +47,8 @@ DEEPGRAM_API_KEY=
 DEEPGRAM_EAGER_EOT_THRESHOLD=0.4
 DEEPGRAM_EOT_THRESHOLD=0.7
 DEEPGRAM_EOT_TIMEOUT_MS=3000
-OPENROUTER_API_KEY=
+OPENAI_API_KEY=
+LLM_MODEL=gpt-4.1-mini
 ELEVENLABS_API_KEY=
 ELEVENLABS_TTS_MODEL=eleven_multilingual_v2
 ELEVENLABS_APPLY_TEXT_NORMALIZATION=on
@@ -151,15 +152,17 @@ Changer le modele TTS:
 ELEVENLABS_TTS_MODEL=eleven_multilingual_v2
 ```
 
-## Changer le modele OpenRouter
+## Changer le modele LLM
 
 ```env
-OPENROUTER_MODEL=google/gemini-3-flash-preview
+OPENAI_API_KEY=
+LLM_MODEL=gpt-4.1-mini
 LLM_TEMPERATURE=0.2
 LLM_MAX_TOKENS=180
+LLM_REASONING_EFFORT=
 ```
 
-Le branchement LiveKit utilise `openai.LLM.with_openrouter`.
+`LLM_MODEL` utilise OpenAI direct. Si la valeur contient le prefixe `openai/`, il est retire automatiquement, par exemple `openai/gpt-4.1-mini` devient `gpt-4.1-mini`.
 
 ## Lancer une demo web
 
@@ -256,7 +259,8 @@ LIVEKIT_URL=
 LIVEKIT_API_KEY=
 LIVEKIT_API_SECRET=
 DEEPGRAM_API_KEY=
-OPENROUTER_API_KEY=
+OPENAI_API_KEY=
+LLM_MODEL=gpt-4.1-mini
 ELEVENLABS_API_KEY=
 VOIX_FEMME_ID=
 VOIX_HOMME_ID=
