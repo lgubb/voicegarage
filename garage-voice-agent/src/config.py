@@ -62,11 +62,18 @@ class Settings(BaseSettings):
     mock_sms: bool = Field(default=True, alias="MOCK_SMS")
     mock_email: bool = Field(default=True, alias="MOCK_EMAIL")
     mock_handoff: bool = Field(default=True, alias="MOCK_HANDOFF")
+    log_detail: str = Field(default="normal", alias="LOG_DETAIL")
 
     @field_validator("elevenlabs_tts_model", "elevenlabs_tts_fallback_model")
     @classmethod
     def normalize_elevenlabs_model(cls, value: str) -> str:
         return value.removeprefix("elevenlabs/")
+
+    @field_validator("log_detail")
+    @classmethod
+    def normalize_log_detail(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        return normalized if normalized in {"debug", "normal", "quiet"} else "normal"
 
     @property
     def selected_voice_id(self) -> str:

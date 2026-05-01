@@ -87,3 +87,5 @@ services:
         value: true
       - key: MOCK_HANDOFF
         value: true
+      - key: LOG_DETAIL
+        value: normal
