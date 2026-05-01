@@ -24,7 +24,7 @@ L'API FastAPI sert de couche produit minimale autour du socle LiveKit Agents. El
 - `token` temporaire;
 - `call_id`.
 
-Les cles Deepgram, OpenRouter, ElevenLabs et LiveKit secret ne sont jamais exposees dans le frontend.
+Les cles Deepgram, OpenAI, ElevenLabs et LiveKit secret ne sont jamais exposees dans le frontend.
 
 ## Stockage local
 

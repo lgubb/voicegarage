@@ -11,7 +11,7 @@ Sources consultees:
 - https://docs.livekit.io/telephony/
 - https://docs.livekit.io/agents/start/testing/
 - https://docs.livekit.io/agents/models/stt/deepgram/
-- https://docs.livekit.io/agents/models/llm/openrouter/
+- https://docs.livekit.io/agents/models/llm/openai/
 - https://docs.livekit.io/agents/models/tts/elevenlabs/
 - https://github.com/livekit-examples/agent-starter-python
 - https://github.com/livekit-examples/python-agents-examples
@@ -43,7 +43,7 @@ Les credentials sont charges depuis `.env`, `.env.local` ou le `.envrc` parent. 
 
 STT: Deepgram est branche via le plugin LiveKit `deepgram`. Le chemin par defaut utilise `deepgram.STTv2` pour Flux et respecte `DEEPGRAM_STT_MODEL=flux-general-multi` avec `language_hint=fr`. Le fallback `DEEPGRAM_STT_FALLBACK_MODEL=nova-3` avec `language=multi` reste prevu si Flux n'est pas disponible sur un compte ou une region.
 
-LLM: OpenRouter passe par le plugin OpenAI compatible LiveKit: `openai.LLM.with_openrouter(model=...)`.
+LLM: OpenAI direct passe par le plugin OpenAI compatible LiveKit: `openai.LLM(model=...)`.
 
 TTS: ElevenLabs est seulement utilise comme provider TTS via `elevenlabs.TTS`. Le code aligne `ELEVENLABS_API_KEY` vers `ELEVEN_API_KEY`, nom attendu par le plugin LiveKit. ElevenLabs Agents n'est pas utilise comme orchestrateur.
 
