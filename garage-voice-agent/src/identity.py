@@ -184,8 +184,13 @@ def normalize_customer_identity_payload(
         "last_name_spelling": spelled or None,
         "confidence": "low" if needs_reask else "high",
         "needs_reask": needs_reask,
+        "spoken_acknowledgement": (
+            "Parfait, merci."
+            if not needs_reask
+            else "Je n'ai pas bien l'epellation complete. Pouvez-vous reepeler votre nom de famille depuis le debut, lettre par lettre ?"
+        ),
         "spoken_confirmation": (
-            f"Confirmez-moi que votre nom de famille s'epelle bien {spelled}, s'il vous plait."
+            "Parfait, merci."
             if not needs_reask
             else "Je n'ai pas bien l'epellation complete. Pouvez-vous reepeler votre nom de famille depuis le debut, lettre par lettre ?"
         ),

@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     elevenlabs_tts_model: str = Field(default="eleven_multilingual_v2", alias="ELEVENLABS_TTS_MODEL")
     elevenlabs_tts_fallback_model: str = Field(default="eleven_multilingual_v2", alias="ELEVENLABS_TTS_FALLBACK_MODEL")
     elevenlabs_apply_text_normalization: str = Field(default="on", alias="ELEVENLABS_APPLY_TEXT_NORMALIZATION")
+    elevenlabs_stability: float = Field(default=0.4, alias="ELEVENLABS_STABILITY")
     elevenlabs_pronunciation_dictionary_id: str | None = Field(
         default=None, alias="ELEVENLABS_PRONUNCIATION_DICTIONARY_ID"
     )
@@ -74,6 +75,11 @@ class Settings(BaseSettings):
     @classmethod
     def normalize_elevenlabs_model(cls, value: str) -> str:
         return value.removeprefix("elevenlabs/")
+
+    @field_validator("elevenlabs_stability")
+    @classmethod
+    def clamp_elevenlabs_stability(cls, value: float) -> float:
+        return min(max(value, 0.0), 1.0)
 
     @field_validator("log_detail")
     @classmethod

@@ -11,6 +11,8 @@ def test_reconstructs_spelled_last_name_from_letter_sequence() -> None:
     assert payload["caller_name"] == "Louis Gubbiotti"
     assert payload["last_name_spelling"] == "G U B B I O T T I"
     assert payload["needs_reask"] is False
+    assert payload["spoken_acknowledgement"] == "Parfait, merci."
+    assert payload["spoken_confirmation"] == "Parfait, merci."
 
 
 def test_uses_last_name_hint_for_french_g_heard_as_j_ai() -> None:

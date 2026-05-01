@@ -633,6 +633,13 @@ def pronunciation_dictionary_locators(
     ]
 
 
+def elevenlabs_voice_settings(settings: Settings) -> elevenlabs.VoiceSettings:
+    return elevenlabs.VoiceSettings(
+        stability=settings.elevenlabs_stability,
+        similarity_boost=0.75,
+    )
+
+
 def session_metadata(ctx: JobContext) -> dict[str, Any]:
     if not ctx.job.metadata:
         return {}
@@ -653,6 +660,7 @@ def build_tts(settings: Settings, voice: str | None = None):
         kwargs["pronunciation_dictionary_locators"] = locators
     return elevenlabs.TTS(
         voice_id=selected_voice_id_for_session(settings, voice),
+        voice_settings=elevenlabs_voice_settings(settings),
         model=settings.elevenlabs_tts_model,
         language="fr",
         api_key=settings.elevenlabs_api_key,
