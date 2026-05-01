@@ -614,6 +614,13 @@ def build_turn_handling(settings: Settings) -> dict[str, Any]:
     }
 
 
+def initial_greeting(settings: Settings) -> str:
+    return (
+        f"Bonjour, je suis l'assistant virtuel du {settings.garage_name}. "
+        "Comment puis-je vous aider?"
+    )
+
+
 def seconds_to_ms(value: Any) -> float | None:
     return round(value * 1000, 2) if isinstance(value, int | float) else None
 
@@ -835,10 +842,7 @@ async def garage_voice_session(ctx: JobContext) -> None:
     )
     await ctx.connect()
     await session.generate_reply(
-        instructions=(
-            f"Dis exactement: Bonjour, vous etes bien chez {settings.garage_name}. "
-            "Comment puis-je vous aider ?"
-        )
+        instructions=f"Dis exactement: {initial_greeting(settings)}"
     )
 
 
