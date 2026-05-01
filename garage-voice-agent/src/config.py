@@ -38,11 +38,6 @@ class Settings(BaseSettings):
     elevenlabs_tts_model: str = Field(default="eleven_multilingual_v2", alias="ELEVENLABS_TTS_MODEL")
     elevenlabs_tts_fallback_model: str = Field(default="eleven_multilingual_v2", alias="ELEVENLABS_TTS_FALLBACK_MODEL")
     elevenlabs_apply_text_normalization: str = Field(default="on", alias="ELEVENLABS_APPLY_TEXT_NORMALIZATION")
-    elevenlabs_stability: float = Field(default=0.45, alias="ELEVENLABS_STABILITY")
-    elevenlabs_similarity_boost: float = Field(default=0.75, alias="ELEVENLABS_SIMILARITY_BOOST")
-    elevenlabs_style: float = Field(default=0.0, alias="ELEVENLABS_STYLE")
-    elevenlabs_use_speaker_boost: bool = Field(default=False, alias="ELEVENLABS_USE_SPEAKER_BOOST")
-    elevenlabs_speed: float = Field(default=0.95, alias="ELEVENLABS_SPEED")
     elevenlabs_pronunciation_dictionary_id: str | None = Field(
         default=None, alias="ELEVENLABS_PRONUNCIATION_DICTIONARY_ID"
     )
@@ -79,20 +74,6 @@ class Settings(BaseSettings):
     @classmethod
     def normalize_elevenlabs_model(cls, value: str) -> str:
         return value.removeprefix("elevenlabs/")
-
-    @field_validator(
-        "elevenlabs_stability",
-        "elevenlabs_similarity_boost",
-        "elevenlabs_style",
-    )
-    @classmethod
-    def clamp_elevenlabs_unit_interval(cls, value: float) -> float:
-        return min(max(value, 0.0), 1.0)
-
-    @field_validator("elevenlabs_speed")
-    @classmethod
-    def clamp_elevenlabs_speed(cls, value: float) -> float:
-        return min(max(value, 0.7), 1.2)
 
     @field_validator("log_detail")
     @classmethod
