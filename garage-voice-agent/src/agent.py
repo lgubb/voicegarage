@@ -37,6 +37,7 @@ from tools.call_record_tools import create_call_record as create_call_record_imp
 from tools.handoff_tools import transfer_to_human as transfer_to_human_impl
 from tools.notification_tools import send_confirmation_sms as send_confirmation_sms_impl
 from tools.notification_tools import send_garage_summary_email as send_garage_summary_email_impl
+from tts_text import oralize_tts_stream
 
 logger = logging.getLogger("garage_voice_agent")
 
@@ -571,6 +572,40 @@ def selected_voice_id_for_session(settings: Settings, voice: str | None = None) 
     return settings.selected_voice_id
 
 
+def pronunciation_dictionary_locators(
+    settings: Settings,
+) -> list[elevenlabs.PronunciationDictionaryLocator] | None:
+    dictionary_id = settings.elevenlabs_pronunciation_dictionary_id
+    version_id = settings.elevenlabs_pronunciation_dictionary_version_id
+    if not dictionary_id and not version_id:
+        return None
+    if not dictionary_id or not version_id:
+        logger.warning(
+            "elevenlabs_pronunciation_dictionary_incomplete",
+            extra={
+                "has_dictionary_id": bool(dictionary_id),
+                "has_version_id": bool(version_id),
+            },
+        )
+        return None
+    return [
+        elevenlabs.PronunciationDictionaryLocator(
+            pronunciation_dictionary_id=dictionary_id,
+            version_id=version_id,
+        )
+    ]
+
+
+def elevenlabs_voice_settings(settings: Settings) -> elevenlabs.VoiceSettings:
+    return elevenlabs.VoiceSettings(
+        stability=settings.elevenlabs_stability,
+        similarity_boost=settings.elevenlabs_similarity_boost,
+        style=settings.elevenlabs_style,
+        speed=settings.elevenlabs_speed,
+        use_speaker_boost=settings.elevenlabs_use_speaker_boost,
+    )
+
+
 def session_metadata(ctx: JobContext) -> dict[str, Any]:
     if not ctx.job.metadata:
         return {}
@@ -585,12 +620,18 @@ def session_metadata(ctx: JobContext) -> dict[str, Any]:
 def build_tts(settings: Settings, voice: str | None = None):
     if settings.elevenlabs_api_key:
         os.environ.setdefault("ELEVEN_API_KEY", settings.elevenlabs_api_key)
+    kwargs: dict[str, Any] = {}
+    locators = pronunciation_dictionary_locators(settings)
+    if locators:
+        kwargs["pronunciation_dictionary_locators"] = locators
     return elevenlabs.TTS(
         voice_id=selected_voice_id_for_session(settings, voice),
+        voice_settings=elevenlabs_voice_settings(settings),
         model=settings.elevenlabs_tts_model,
         language="fr",
         api_key=settings.elevenlabs_api_key,
         apply_text_normalization=settings.elevenlabs_apply_text_normalization,
+        **kwargs,
     )
 
 
@@ -824,6 +865,7 @@ async def garage_voice_session(ctx: JobContext) -> None:
         stt=build_stt(settings),
         llm=build_llm(settings),
         tts=build_tts(settings, voice),
+        tts_text_transforms=["filter_markdown", "filter_emoji", oralize_tts_stream],
         vad=ctx.proc.userdata["vad"],
         turn_handling=build_turn_handling(settings),
         aec_warmup_duration=settings.aec_warmup_duration,
