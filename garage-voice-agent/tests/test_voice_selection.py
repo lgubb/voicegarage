@@ -20,7 +20,7 @@ def test_selects_female_voice_for_session() -> None:
     assert selected_voice_id_for_session(settings, "femme") == "female_voice"
 
 
-def test_turn_handling_uses_vad_interruption_defaults() -> None:
+def test_turn_handling_uses_stable_interruption_defaults() -> None:
     settings = Settings()
 
     assert build_turn_handling(settings) == {
@@ -31,7 +31,12 @@ def test_turn_handling_uses_vad_interruption_defaults() -> None:
             "max_delay": 1.2,
         },
         "interruption": {
-            "mode": "vad",
+            "mode": "adaptive",
+            "min_duration": 0.6,
+            "min_words": 1,
+            "false_interruption_timeout": 0.4,
+            "discard_audio_if_uninterruptible": False,
+            "resume_false_interruption": True,
         },
         "preemptive_generation": {
             "enabled": False,

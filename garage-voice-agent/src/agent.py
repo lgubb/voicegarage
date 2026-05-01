@@ -603,7 +603,12 @@ def build_turn_handling(settings: Settings) -> dict[str, Any]:
             "max_delay": settings.endpointing_max_delay,
         },
         "interruption": {
-            "mode": "vad",
+            "mode": "adaptive",
+            "min_duration": settings.interruption_min_duration,
+            "min_words": settings.interruption_min_words,
+            "false_interruption_timeout": settings.false_interruption_timeout,
+            "discard_audio_if_uninterruptible": settings.discard_audio_if_uninterruptible,
+            "resume_false_interruption": True,
         },
         "preemptive_generation": {
             "enabled": settings.preemptive_generation_enabled,

@@ -49,7 +49,7 @@ TTS: ElevenLabs est seulement utilise comme provider TTS via `elevenlabs.TTS`. L
 
 ## Turn detection, interruptions et barge-in
 
-LiveKit combine VAD, STT endpointing et turn detection. Pour Flux, `turn_detection="stt"` exploite les signaux de fin de tour du STT. Le VAD Silero reste actif pour detecter rapidement la parole utilisateur et permettre l'interruption naturelle de la voix agent. L'interruption utilise le mode VAD simple pour eviter les limites de concurrence du service Adaptive Interruption/barge-in LiveKit pendant les demos. Le prompt demande explicitement de s'arreter si le client interrompt.
+LiveKit combine VAD, STT endpointing et turn detection. Pour Flux, `turn_detection="stt"` exploite les signaux de fin de tour du STT. Le VAD Silero reste actif pour detecter rapidement la parole utilisateur et permettre l'interruption naturelle de la voix agent. Le prompt demande explicitement de s'arreter si le client interrompt.
 
 ## Tools
 
