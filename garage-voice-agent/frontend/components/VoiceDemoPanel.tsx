@@ -72,6 +72,19 @@ function formatDateTime(value: unknown): string | null {
   const rawValue = textValue(value);
   if (!rawValue) return null;
 
+  const isoWallClock = rawValue.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (isoWallClock) {
+    const [, year, month, day, hour, minute] = isoWallClock;
+    const wallDate = new Date(Number(year), Number(month) - 1, Number(day));
+    const datePart = new Intl.DateTimeFormat("fr-FR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    }).format(wallDate);
+
+    return `${datePart.charAt(0).toUpperCase()}${datePart.slice(1)} à ${Number(hour)} h ${minute}`;
+  }
+
   const date = new Date(rawValue);
   if (Number.isNaN(date.getTime())) {
     return rawValue;

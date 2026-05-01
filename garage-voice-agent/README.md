@@ -65,6 +65,7 @@ PREEMPTIVE_GENERATION_ENABLED=false
 PREEMPTIVE_TTS=true
 PREEMPTIVE_MAX_SPEECH_DURATION=6.0
 PREEMPTIVE_MAX_RETRIES=2
+LOG_DETAIL=normal
 GARAGE_NAME=Votre garage
 API_HOST=0.0.0.0
 API_PORT=8000
@@ -73,6 +74,12 @@ LOCAL_CALL_STORE_PATH=./data/calls.json
 ```
 
 Le plugin LiveKit ElevenLabs attend `ELEVEN_API_KEY`; le code renseigne cette variable automatiquement depuis `ELEVENLABS_API_KEY`.
+
+`LOG_DETAIL` controle le volume des logs du worker vocal:
+
+- `normal`: garde les transcripts finaux, messages assistant, outils et latences utiles.
+- `debug`: ajoute les transcripts partiels, changements d'etat et payloads metriques complets.
+- `quiet`: garde surtout les evenements metier et les warnings/errors.
 
 Frontend: les variables `NEXT_PUBLIC_API_BASE_URL` et `NEXT_PUBLIC_APP_NAME` peuvent rester dans le `.envrc` parent. `frontend/.env.local.example` est seulement un exemple si tu veux lancer le frontend seul sans `direnv`.
 

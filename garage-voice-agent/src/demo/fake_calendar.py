@@ -1,6 +1,9 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 
 from schemas import TimeSlot
+
+PARIS_TZ = ZoneInfo("Europe/Paris")
 
 
 def _next_business_day(start: date, offset: int) -> date:
@@ -38,10 +41,11 @@ def generate_mock_slots(
     slots: list[TimeSlot] = []
     for index, time_value in enumerate(times, start=1):
         day = _next_business_day(base_date, index)
+        slot_datetime = datetime.combine(day, time.fromisoformat(time_value), PARIS_TZ)
         slots.append(
             TimeSlot(
                 slot_id=f"mock-{service_type.lower().replace(' ', '-')}-{index}",
-                datetime=f"{day.isoformat()}T{time_value}:00+01:00",
+                datetime=slot_datetime.isoformat(),
                 period=period,
                 service_type=service_type,
             )

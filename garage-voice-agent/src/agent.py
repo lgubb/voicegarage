@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import re
+import unicodedata
 from typing import Any
 
 from dotenv import load_dotenv
@@ -41,7 +42,7 @@ logger = logging.getLogger("garage_voice_agent")
 
 load_dotenv(PROJECT_ROOT / ".env")
 load_dotenv(PROJECT_ROOT.parent / ".envrc")
-configure_logging()
+configure_logging(log_detail=os.getenv("LOG_DETAIL", "normal").strip().lower())
 
 
 _BACKGROUND_TASKS: set[asyncio.Task[Any]] = set()
@@ -81,6 +82,106 @@ def strip_json_fence(value: str) -> str:
     return cleaned
 
 
+FRENCH_NUMBER_WORDS = {
+    "zero": 0,
+    "un": 1,
+    "une": 1,
+    "deux": 2,
+    "trois": 3,
+    "quatre": 4,
+    "cinq": 5,
+    "six": 6,
+    "sept": 7,
+    "huit": 8,
+    "neuf": 9,
+    "dix": 10,
+    "onze": 11,
+    "douze": 12,
+    "treize": 13,
+    "quatorze": 14,
+    "quinze": 15,
+    "seize": 16,
+    "vingt": 20,
+    "vingts": 20,
+    "trente": 30,
+    "quarante": 40,
+    "cinquante": 50,
+    "soixante": 60,
+}
+
+
+def normalize_spoken_text(value: str) -> list[str]:
+    normalized = unicodedata.normalize("NFKD", value.lower())
+    ascii_text = "".join(char for char in normalized if not unicodedata.combining(char))
+    return re.sub(r"[^a-z0-9+]+", " ", ascii_text).split()
+
+
+def french_number_value(tokens: list[str]) -> int | None:
+    tokens = [token for token in tokens if token != "et"]
+    if not tokens:
+        return None
+    if len(tokens) == 1:
+        return FRENCH_NUMBER_WORDS.get(tokens[0])
+    if tokens[:2] == ["quatre", "vingt"]:
+        suffix = french_number_value(tokens[2:]) if len(tokens) > 2 else 0
+        return 80 + suffix if suffix is not None and suffix <= 19 else None
+    first = FRENCH_NUMBER_WORDS.get(tokens[0])
+    if first is None:
+        return None
+    if first in {20, 30, 40, 50}:
+        suffix = french_number_value(tokens[1:])
+        return first + suffix if suffix is not None and 0 < suffix < 10 else None
+    if first == 60:
+        suffix = french_number_value(tokens[1:])
+        return first + suffix if suffix is not None and 0 < suffix < 20 else None
+    return None
+
+
+def parse_french_number_chunk(tokens: list[str], start: int) -> tuple[int, int] | None:
+    for length in range(4, 0, -1):
+        value = french_number_value(tokens[start : start + length])
+        if value is not None and 0 <= value <= 99:
+            return value, length
+    return None
+
+
+def normalize_french_phone(value: str | None) -> str | None:
+    if not value:
+        return None
+    digits = re.sub(r"\D", "", value)
+    if digits.startswith("33") and len(digits) == 11:
+        digits = f"0{digits[2:]}"
+    if len(digits) == 10 and digits.startswith("0"):
+        return digits
+    return None
+
+
+def extract_french_phone_number(text: str) -> str | None:
+    numeric_phone = normalize_french_phone(text)
+    if numeric_phone:
+        return numeric_phone
+
+    tokens = normalize_spoken_text(text)
+    for index, token in enumerate(tokens[:-1]):
+        if token != "zero":
+            continue
+        first_digit = FRENCH_NUMBER_WORDS.get(tokens[index + 1])
+        if first_digit is None or not 1 <= first_digit <= 9:
+            continue
+        cursor = index + 2
+        chunks = [f"0{first_digit}"]
+        while len(chunks) < 5:
+            parsed = parse_french_number_chunk(tokens, cursor)
+            if parsed is None:
+                break
+            value, consumed = parsed
+            chunks.append(f"{value:02d}")
+            cursor += consumed
+        if len(chunks) == 5:
+            return "".join(chunks)
+    return None
+
+
 class LiveCallSheetState:
     def __init__(self, room: rtc.Room, settings: Settings) -> None:
         self.room = room
@@ -116,6 +217,10 @@ class LiveCallSheetState:
             lines.append(f"Assistant: {text}")
         return "\n".join(lines).strip()
 
+    def best_phone(self, fallback: str | None) -> str | None:
+        transcript_phone = extract_french_phone_number("\n".join(self.user_transcripts))
+        return transcript_phone or normalize_french_phone(fallback) or clean_text(fallback)
+
     def looks_like_recap(self, message: str) -> bool:
         normalized = message.lower()
         return any(
@@ -125,14 +230,17 @@ class LiveCallSheetState:
                 "je vous recapitul",
                 "nous avons rendez-vous",
                 "rendez-vous le",
-                "créneau",
-                "creneau",
             )
         )
 
+    def should_refresh_record(self, reason: str) -> bool:
+        if self.record_payload is None:
+            return True
+        return reason == "disconnect" and self.record_payload.get("source") == "assistant_recap"
+
     async def ensure_sheet(self, reason: str) -> None:
         async with self._lock:
-            if self.record_payload is not None:
+            if self.record_payload is not None and not self.should_refresh_record(reason):
                 await self.publish("record", self.record_payload)
                 return
 
@@ -222,9 +330,10 @@ class LiveCallSheetState:
 
     def build_record_payload(self, extracted: dict[str, Any], reason: str) -> dict[str, Any]:
         summary = clean_text(extracted.get("summary")) or "Informations collectées pendant l'appel."
+        phone = self.best_phone(clean_text(extracted.get("phone")))
         record = create_call_record_impl(
             caller_name=clean_text(extracted.get("caller_name")),
-            phone=clean_text(extracted.get("phone")),
+            phone=phone,
             email=clean_text(extracted.get("email")),
             vehicle_make=clean_text(extracted.get("vehicle_make")),
             vehicle_model=clean_text(extracted.get("vehicle_model")),
@@ -245,9 +354,10 @@ class LiveCallSheetState:
         appointment_confirmed = bool(extracted.get("appointment_confirmed"))
         if not appointment_datetime and not appointment_confirmed:
             return self.appointment_payload
+        phone = self.best_phone(clean_text(extracted.get("phone")))
         return {
             "caller_name": clean_text(extracted.get("caller_name")),
-            "phone": clean_text(extracted.get("phone")),
+            "phone": phone,
             "vehicle": {
                 "make": clean_text(extracted.get("vehicle_make")),
                 "model": clean_text(extracted.get("vehicle_model")),
@@ -261,8 +371,7 @@ class LiveCallSheetState:
 
     @staticmethod
     def extract_phone(text: str) -> str | None:
-        match = re.search(r"(?:(?:\+33|0)\s?[1-9](?:[\s.-]?\d{2}){4})", text)
-        return match.group(0) if match else None
+        return extract_french_phone_number(text)
 
 
 class GarageAgent(Agent):
@@ -330,6 +439,10 @@ class GarageAgent(Agent):
             selected_slot_id: Identifiant du creneau renvoye par check_availability.
             notes: Notes utiles pour le garage.
         """
+        if self.call_sheet_state is not None:
+            phone = self.call_sheet_state.best_phone(phone)
+        else:
+            phone = normalize_french_phone(phone) or clean_text(phone)
         appointment = create_appointment_impl(
             caller_name=caller_name,
             phone=phone,
@@ -363,6 +476,10 @@ class GarageAgent(Agent):
         risk_flags: list[str] | None = None,
     ) -> dict[str, Any]:
         """Cree une fiche appel exploitable, meme avec des informations incompletes."""
+        if self.call_sheet_state is not None:
+            phone = self.call_sheet_state.best_phone(phone)
+        else:
+            phone = normalize_french_phone(phone) or clean_text(phone)
         record = create_call_record_impl(
             caller_name=caller_name,
             phone=phone,
@@ -486,12 +603,7 @@ def build_turn_handling(settings: Settings) -> dict[str, Any]:
             "max_delay": settings.endpointing_max_delay,
         },
         "interruption": {
-            "mode": "adaptive",
-            "min_duration": settings.interruption_min_duration,
-            "min_words": settings.interruption_min_words,
-            "false_interruption_timeout": settings.false_interruption_timeout,
-            "discard_audio_if_uninterruptible": settings.discard_audio_if_uninterruptible,
-            "resume_false_interruption": True,
+            "mode": "vad",
         },
         "preemptive_generation": {
             "enabled": settings.preemptive_generation_enabled,
@@ -506,11 +618,24 @@ def seconds_to_ms(value: Any) -> float | None:
     return round(value * 1000, 2) if isinstance(value, int | float) else None
 
 
-def log_voice_metric(metric: Any) -> None:
+def log_voice_metric(metric: Any, log_detail: str = "normal") -> None:
     metric_payload = metric.model_dump(mode="json")
     metadata = metric_payload.get("metadata") or {}
     metric_type = metric_payload.get("type")
     if metric_type == "vad_metrics":
+        return
+    if log_detail == "quiet":
+        return
+    if log_detail != "debug" and metric_type == "stt_metrics":
+        logger.debug(
+            "voice_metric_collected",
+            extra={
+                "metric_type": metric_type,
+                "metric_provider": metadata.get("model_provider"),
+                "metric_model": metadata.get("model_name"),
+                "metric_request_id": metric_payload.get("request_id"),
+            },
+        )
         return
     timing_fields = {
         f"{key}_ms": seconds_to_ms(metric_payload.get(key))
@@ -529,55 +654,60 @@ def log_voice_metric(metric: Any) -> None:
         )
         if seconds_to_ms(metric_payload.get(key)) is not None
     }
+    extra = {
+        "metric_type": metric_type,
+        "metric_label": metric_payload.get("label"),
+        "metric_provider": metadata.get("model_provider"),
+        "metric_model": metadata.get("model_name"),
+        "metric_request_id": metric_payload.get("request_id"),
+        "metric_speech_id": metric_payload.get("speech_id"),
+        "metric_timing": timing_fields,
+    }
+    if log_detail == "debug":
+        extra["metric"] = metric_payload
     logger.info(
         "voice_metric_collected",
-        extra={
-            "metric_type": metric_type,
-            "metric_label": metric_payload.get("label"),
-            "metric_provider": metadata.get("model_provider"),
-            "metric_model": metadata.get("model_name"),
-            "metric_request_id": metric_payload.get("request_id"),
-            "metric_speech_id": metric_payload.get("speech_id"),
-            "metric_timing": timing_fields,
-            "metric": metric_payload,
-        },
+        extra=extra,
     )
 
 
-def log_turn_message_metrics(item: Any) -> None:
+def log_turn_message_metrics(item: Any, log_detail: str = "normal") -> None:
     metrics = getattr(item, "metrics", None)
     if not metrics:
         return
     text_content = getattr(item, "text_content", None)
     text_preview = text_content[:180] if isinstance(text_content, str) else None
+    extra = {
+        "message_role": getattr(item, "role", None),
+        "message_id": getattr(item, "id", None),
+        "message_text_preview": text_preview,
+        "e2e_latency_ms": seconds_to_ms(metrics.get("e2e_latency")),
+        "llm_node_ttft_ms": seconds_to_ms(metrics.get("llm_node_ttft")),
+        "tts_node_ttfb_ms": seconds_to_ms(metrics.get("tts_node_ttfb")),
+        "transcription_delay_ms": seconds_to_ms(metrics.get("transcription_delay")),
+        "end_of_turn_delay_ms": seconds_to_ms(metrics.get("end_of_turn_delay")),
+        "on_user_turn_completed_delay_ms": seconds_to_ms(
+            metrics.get("on_user_turn_completed_delay")
+        ),
+    }
+    if log_detail == "debug":
+        extra["turn_metrics"] = dict(metrics)
     logger.info(
         "voice_turn_message_metrics",
-        extra={
-            "message_role": getattr(item, "role", None),
-            "message_id": getattr(item, "id", None),
-            "message_text_preview": text_preview,
-            "e2e_latency_ms": seconds_to_ms(metrics.get("e2e_latency")),
-            "llm_node_ttft_ms": seconds_to_ms(metrics.get("llm_node_ttft")),
-            "tts_node_ttfb_ms": seconds_to_ms(metrics.get("tts_node_ttfb")),
-            "transcription_delay_ms": seconds_to_ms(metrics.get("transcription_delay")),
-            "end_of_turn_delay_ms": seconds_to_ms(metrics.get("end_of_turn_delay")),
-            "on_user_turn_completed_delay_ms": seconds_to_ms(
-                metrics.get("on_user_turn_completed_delay")
-            ),
-            "turn_metrics": dict(metrics),
-        },
+        extra=extra,
     )
 
 
 def register_session_observability(
     session: AgentSession,
+    settings: Settings,
     call_sheet_state: LiveCallSheetState | None = None,
 ) -> None:
     def on_metrics_collected(event: Any) -> None:
-        log_voice_metric(event.metrics)
+        log_voice_metric(event.metrics, settings.log_detail)
 
     def on_conversation_item_added(event: Any) -> None:
-        log_turn_message_metrics(event.item)
+        log_turn_message_metrics(event.item, settings.log_detail)
         text_content = getattr(event.item, "text_content", None)
         if not isinstance(text_content, str) or not call_sheet_state:
             return
@@ -588,7 +718,8 @@ def register_session_observability(
                 schedule_background_task(call_sheet_state.ensure_sheet("assistant_recap"))
 
     def on_user_input_transcribed(event: Any) -> None:
-        logger.info(
+        log_method = logger.info if event.is_final or settings.log_detail == "debug" else logger.debug
+        log_method(
             "voice_user_transcript",
             extra={
                 "transcript_final": event.is_final,
@@ -600,20 +731,23 @@ def register_session_observability(
             call_sheet_state.add_user_transcript(event.transcript)
 
     def on_agent_state_changed(event: Any) -> None:
-        logger.info(
+        log_method = logger.debug if settings.log_detail != "debug" else logger.info
+        log_method(
             "voice_agent_state_changed",
             extra={"old_state": event.old_state, "new_state": event.new_state},
         )
 
     def on_user_state_changed(event: Any) -> None:
-        logger.info(
+        log_method = logger.debug if settings.log_detail != "debug" else logger.info
+        log_method(
             "voice_user_state_changed",
             extra={"old_state": event.old_state, "new_state": event.new_state},
         )
 
     def on_speech_created(event: Any) -> None:
         speech_handle = event.speech_handle
-        logger.info(
+        log_method = logger.debug if settings.log_detail != "debug" else logger.info
+        log_method(
             "voice_speech_created",
             extra={
                 "speech_id": getattr(speech_handle, "id", None),
@@ -683,7 +817,7 @@ async def garage_voice_session(ctx: JobContext) -> None:
         aec_warmup_duration=settings.aec_warmup_duration,
     )
     call_sheet_state = LiveCallSheetState(ctx.room, settings)
-    register_session_observability(session, call_sheet_state)
+    register_session_observability(session, settings, call_sheet_state)
     register_call_sheet_finalization(ctx.room, call_sheet_state)
 
     audio_input = room_io.AudioInputOptions()
